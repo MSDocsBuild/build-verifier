@@ -38,6 +38,7 @@ namespace GitHub
             string repo = userAndRepo[1];
 
             var client = new GitHubClient(new ProductHeaderValue("MSDocsBuildVerifier"));
+            // TODO: access token for potentially larger rate limit??
 
             IReadOnlyList<PullRequestFile> files = await client.PullRequest.Files(user, repo, pullRequestNumber).ConfigureAwait(false);
             return files;
