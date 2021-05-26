@@ -13,7 +13,7 @@ returnCode += await MarkdownFilesAnalyzer.WriteResultsAsync(Console.Out, configu
 
 // on: pull_request
 // env:
-//   PR_NUMBER: ${ { github.event.pull_request.number } }
+//   PR_NUMBER: ${{ github.event.pull_request.number }}
 if (!int.TryParse(Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER"), out int pullRequestNumber))
 {
     throw new InvalidOperationException($"The value of GITHUB_PR_NUMBER environment variable is not valid.");
