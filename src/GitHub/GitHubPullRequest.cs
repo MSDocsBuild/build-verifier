@@ -7,7 +7,7 @@ using Octokit;
 
 namespace GitHub
 {
-    public static class PullRequest
+    public static class GitHubPullRequest
     {
         // Documented in https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables.
         private const string GITHUB_REPO_ENV_VARIABLE = "GITHUB_REPOSITORY";
