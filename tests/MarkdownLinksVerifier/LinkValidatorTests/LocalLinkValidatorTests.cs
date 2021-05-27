@@ -35,7 +35,7 @@ namespace MarkdownLinksVerifier.UnitTests.LinkValidatorTests
 
         private static void VerifyNoErrors(string[] actual)
         {
-            Assert.True(actual.Length == 2, $"The actual output is expected to have exactly two lines. Found {actual.Length} lines.");
+            Assert.True(actual.Length == 2, $"The actual output is expected to have exactly two lines.  Found {actual.Length} lines:\r\n" + string.Join(Environment.NewLine, actual));
 
             char separator = Path.DirectorySeparatorChar;
             // The first line is always expected to be that.
@@ -293,5 +293,30 @@ Hello world.
             Verify(writer.ToString().Split(writer.NewLine), expected);
             Assert.Equal(expected: 1, actual: returnCode);
         }
+
+        #region "MSDocs-specific"
+        [Fact]
+        public async Task TestHeadingReference_MSDocsTab()
+        {
+            using var workspace = new Workspace
+            {
+                Files =
+                {
+                    { "/README.md", @"# [.NET 5.0](#tab/net50)
+
+Hello world.
+" },
+                }
+            };
+
+            char separator = Path.DirectorySeparatorChar;
+
+            string workspacePath = await workspace.InitializeAsync();
+            using var writer = new StringWriter();
+            int returnCode = await WriteResultsAndGetExitCodeAsync(writer);
+            VerifyNoErrors(writer.ToString().Split(writer.NewLine));
+            Assert.Equal(expected: 0, actual: returnCode);
+        }
+        #endregion
     }
 }
