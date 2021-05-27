@@ -11,4 +11,6 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Validate links
+      env:
+        GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
       uses: ./
