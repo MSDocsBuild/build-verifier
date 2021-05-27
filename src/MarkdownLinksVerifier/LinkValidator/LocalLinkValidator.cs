@@ -39,7 +39,7 @@ namespace MarkdownLinksVerifier.LinkValidator
 
             link = link.Replace("%20", " ", StringComparison.Ordinal);
             string relativeTo = _baseDirectory;
-            link = AdjustLinkPath(link);
+            link = AdjustLinkPath(link, _baseDirectory);
 
             string? headingIdWithoutHash = null;
             int lastIndex = link.LastIndexOf('#');
@@ -68,9 +68,9 @@ namespace MarkdownLinksVerifier.LinkValidator
             }
         }
 
-        private string AdjustLinkPath(string link)
+        private static string AdjustLinkPath(string link, string baseDirectory)
         {
-            string relativeTo = _baseDirectory;
+            string relativeTo = baseDirectory;
             if (link.StartsWith('/') || link.StartsWith("~/", StringComparison.Ordinal))
             {
                 // The leading slash doesn't matter whether it exists or not.
@@ -84,7 +84,7 @@ namespace MarkdownLinksVerifier.LinkValidator
             return Path.GetFullPath(Path.Join(relativeTo, link));
         }
 
-        private bool IsHeadingValid(string path, string headingIdWithoutHash)
+        private static bool IsHeadingValid(string path, string headingIdWithoutHash)
         {
             if (headingIdWithoutHash.StartsWith("tab/", StringComparison.Ordinal))
             {
@@ -105,7 +105,8 @@ namespace MarkdownLinksVerifier.LinkValidator
             string fileContents = File.ReadAllText(path);
 
             // Files that may contain the heading we're looking for.
-            IEnumerable<string> potentialFiles = new[] { path }.Concat(GetIncludes(fileContents));
+            // TODO: Revisist suppression.
+            IEnumerable<string> potentialFiles = new[] { path }.Concat(GetIncludes(fileContents, Path.GetDirectoryName(path)!));
             foreach (string potentialFile in potentialFiles)
             {
                 if (!File.Exists(potentialFile))
@@ -132,9 +133,9 @@ namespace MarkdownLinksVerifier.LinkValidator
             }
         }
 
-        private IEnumerable<string> GetIncludes(string fileContents)
+        private static IEnumerable<string> GetIncludes(string fileContents, string baseDirectory)
         {
-            return s_inlineIncludeRegex.Matches(fileContents).Select(m => AdjustLinkPath(m.Groups[2].Value));
+            return s_inlineIncludeRegex.Matches(fileContents).Select(m => AdjustLinkPath(m.Groups[2].Value, baseDirectory));
         }
     }
 }
