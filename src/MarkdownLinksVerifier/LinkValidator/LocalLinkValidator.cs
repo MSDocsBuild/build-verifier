@@ -114,7 +114,8 @@ namespace MarkdownLinksVerifier.LinkValidator
                 MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAutoIdentifiers(AutoIdentifierOptions.GitHub).Build(); // TODO: Is AutoIdentifierOptions.GitHub the correct value to use?
                 MarkdownDocument document = Markdown.Parse(File.ReadAllText(potentialFile), pipeline);
                 if (document.Descendants<HeadingBlock>().Any(heading => headingIdWithoutHash == heading.GetAttributes().Id) ||
-                    document.Descendants<HtmlInline>().Any(html => IsValidHtml(html.Tag, headingIdWithoutHash)))
+                    document.Descendants<HtmlInline>().Any(html => IsValidHtml(html.Tag, headingIdWithoutHash)) ||
+                    document.Descendants<HtmlBlock>().Any(block => block.Lines.Lines.Any(line => IsValidHtml(line.Slice.ToString(), headingIdWithoutHash))))
                 {
                     return true;
                 }
@@ -125,7 +126,7 @@ namespace MarkdownLinksVerifier.LinkValidator
             // Hacky approach!
             static bool IsValidHtml(string tag, string headingIdWithoutHawsh)
             {
-                return Regex.Match(tag, @"^<a\s+?(name|id)\s*?=\s*?""(.+?)""").Groups[2].Value == headingIdWithoutHawsh;
+                return Regex.Match(tag, @"^<(a|span)\s+?(name|id)\s*?=\s*?""(.+?)""").Groups[3].Value == headingIdWithoutHawsh;
             }
         }
 
