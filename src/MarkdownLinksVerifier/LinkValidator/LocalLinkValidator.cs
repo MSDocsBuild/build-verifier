@@ -94,8 +94,10 @@ namespace MarkdownLinksVerifier.LinkValidator
                 return true;
             }
 
-            if (!path.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
+            if (!path.EndsWith(".md", StringComparison.OrdinalIgnoreCase) ||
+                path.Contains("/includes/", StringComparison.OrdinalIgnoreCase))
             {
+                // includes aren't guaranteed to be valid. For now, ignore them for simplicity.
                 return true;
             }
 
