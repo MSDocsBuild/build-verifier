@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -13,6 +15,13 @@ namespace MarkdownLinksVerifier.LinkValidator
     internal class LocalLinkValidator : ILinkValidator
     {
         private readonly string _baseDirectory;
+
+        // https://github.com/dotnet/docfx/blob/64fa7e4ed1c1f416e672f2aee2307fd98a21383e/src/Microsoft.DocAsCode.Dfm/Rules/DfmIncludeBlockRule.cs#L44
+        // private static readonly Regex s_incRegex = new Regex(@"^\[!INCLUDE\+?\s*\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\(\s*<?([^)]*?)>?(?:\s+(['""])([\s\S]*?)\3)?\s*\)\]\s*(\n|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(10));
+
+        // https://github.com/dotnet/docfx/blob/1f9cbcea04556f5bfd1cfdeae8d17e48545553de/src/Microsoft.DocAsCode.Dfm/Rules/DfmIncludeInlineRule.cs#L14
+        private static readonly Regex s_inlineIncludeRegex = new(@"^\[!INCLUDE\s*\-?\s*\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\(\s*<?([^)]*?)>?(?:\s+(['""])([\s\S]*?)\3)?\s*\)\]", RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(10));
+
 
         public LocalLinkValidator(string baseDirectory) => _baseDirectory = baseDirectory;
 
@@ -82,16 +91,34 @@ namespace MarkdownLinksVerifier.LinkValidator
                 return true;
             }
 
-            MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAutoIdentifiers(AutoIdentifierOptions.GitHub).Build(); // TODO: Is AutoIdentifierOptions.GitHub the correct value to use?
-            MarkdownDocument document = Markdown.Parse(File.ReadAllText(path), pipeline);
-            return document.Descendants<HeadingBlock>().Any(heading => headingIdWithoutHash == heading.GetAttributes().Id) ||
-                document.Descendants<HtmlInline>().Any(html => IsValidHtml(html.Tag, headingIdWithoutHash));
+            // TODO: PERF: Optimize reading files from disk and parsing markdown. These should be cached.
+            string fileContents = File.ReadAllText(path);
+
+            // Files that may contain the heading we're looking for.
+            IEnumerable<string> potentialFiles = new[] { path }.Concat(GetIncludes(fileContents));
+            foreach (string potentialFile in potentialFiles)
+            {
+                MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAutoIdentifiers(AutoIdentifierOptions.GitHub).Build(); // TODO: Is AutoIdentifierOptions.GitHub the correct value to use?
+                MarkdownDocument document = Markdown.Parse(File.ReadAllText(potentialFile), pipeline);
+                if (document.Descendants<HeadingBlock>().Any(heading => headingIdWithoutHash == heading.GetAttributes().Id) ||
+                    document.Descendants<HtmlInline>().Any(html => IsValidHtml(html.Tag, headingIdWithoutHash)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
 
             // Hacky approach!
             static bool IsValidHtml(string tag, string headingIdWithoutHawsh)
             {
                 return Regex.Match(tag, @"^<a\s+?(name|id)\s*?=\s*?""(.+?)""").Groups[2].Value == headingIdWithoutHawsh;
             }
+        }
+
+        private static IEnumerable<string> GetIncludes(string fileContents)
+        {
+            return s_inlineIncludeRegex.Matches(fileContents).Select(m => m.Groups[1].Value);
         }
     }
 }
