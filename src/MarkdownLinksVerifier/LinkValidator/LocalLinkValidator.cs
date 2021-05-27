@@ -69,6 +69,14 @@ namespace MarkdownLinksVerifier.LinkValidator
 
         private static bool IsHeadingValid(string path, string headingIdWithoutHash)
         {
+            if (path.StartsWith("tab/", StringComparison.Ordinal))
+            {
+                // MSDocs-specific syntax. This syntax works only in an H1.
+                // e.g: `# [Visual Studio 15.6 and earlier](#tab/vs156)`
+                // But I'm returning true for everything.
+                return true;
+            }
+
             if (!path.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
