@@ -106,6 +106,11 @@ namespace MarkdownLinksVerifier.LinkValidator
             IEnumerable<string> potentialFiles = new[] { path }.Concat(GetIncludes(fileContents));
             foreach (string potentialFile in potentialFiles)
             {
+                if (!File.Exists(potentialFile))
+                {
+                    continue;
+                }
+
                 MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAutoIdentifiers(AutoIdentifierOptions.GitHub).Build(); // TODO: Is AutoIdentifierOptions.GitHub the correct value to use?
                 MarkdownDocument document = Markdown.Parse(File.ReadAllText(potentialFile), pipeline);
                 if (document.Descendants<HeadingBlock>().Any(heading => headingIdWithoutHash == heading.GetAttributes().Id) ||
