@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,7 +19,7 @@ namespace MarkdownLinksVerifier.LinkValidator
         // private static readonly Regex s_incRegex = new Regex(@"^\[!INCLUDE\+?\s*\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\(\s*<?([^)]*?)>?(?:\s+(['""])([\s\S]*?)\3)?\s*\)\]\s*(\n|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(10));
 
         // https://github.com/dotnet/docfx/blob/1f9cbcea04556f5bfd1cfdeae8d17e48545553de/src/Microsoft.DocAsCode.Dfm/Rules/DfmIncludeInlineRule.cs#L14
-        private static readonly Regex s_inlineIncludeRegex = new(@"^\[!INCLUDE\s*\-?\s*\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\(\s*<?([^)]*?)>?(?:\s+(['""])([\s\S]*?)\3)?\s*\)\]", RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(10));
+        private static readonly Regex s_inlineIncludeRegex = new(@"^\[!INCLUDE\s*\-?\s*\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\(\s*<?([^)]*?)>?(?:\s+(['""])([\s\S]*?)\3)?\s*\)\]", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline, TimeSpan.FromSeconds(10));
 
 
         public LocalLinkValidator(string baseDirectory) => _baseDirectory = baseDirectory;
@@ -40,13 +39,7 @@ namespace MarkdownLinksVerifier.LinkValidator
 
             link = link.Replace("%20", " ", StringComparison.Ordinal);
             string relativeTo = _baseDirectory;
-
-            if (link.StartsWith('/'))
-            {
-                // Links that start with / are relative to the repository root.
-                // TODO: Does it work locally (e.g. in VS Code)? Consider a warning for it.
-                relativeTo = Directory.GetCurrentDirectory();
-            }
+            link = AdjustLinkPath(link);
 
             string? headingIdWithoutHash = null;
             int lastIndex = link.LastIndexOf('#');
@@ -65,18 +58,33 @@ namespace MarkdownLinksVerifier.LinkValidator
                 link = link.Substring(0, lastIndex);
             }
 
-            string path = Path.GetFullPath(Path.Join(relativeTo, link));
             if (headingIdWithoutHash is null)
             {
-                return File.Exists(path) || Directory.Exists(path);
+                return File.Exists(link) || Directory.Exists(link);
             }
             else
             {
-                return File.Exists(path) && IsHeadingValid(path, headingIdWithoutHash);
+                return File.Exists(link) && IsHeadingValid(link, headingIdWithoutHash);
             }
         }
 
-        private static bool IsHeadingValid(string path, string headingIdWithoutHash)
+        private string AdjustLinkPath(string link)
+        {
+            string relativeTo = _baseDirectory;
+            if (link.StartsWith('/') || link.StartsWith("~/", StringComparison.Ordinal))
+            {
+                // The leading slash doesn't matter whether it exists or not.
+                // Only the ~ is problematic and we want to remove it.
+                link = link[1..];
+                // Links that start with / are relative to the repository root.
+                // TODO: Does it work locally (e.g. in VS Code)? Consider a warning for it.
+                relativeTo = Directory.GetCurrentDirectory();
+            }
+
+            return Path.GetFullPath(Path.Join(relativeTo, link));
+        }
+
+        private bool IsHeadingValid(string path, string headingIdWithoutHash)
         {
             if (headingIdWithoutHash.StartsWith("tab/", StringComparison.Ordinal))
             {
@@ -116,9 +124,9 @@ namespace MarkdownLinksVerifier.LinkValidator
             }
         }
 
-        private static IEnumerable<string> GetIncludes(string fileContents)
+        private IEnumerable<string> GetIncludes(string fileContents)
         {
-            return s_inlineIncludeRegex.Matches(fileContents).Select(m => m.Groups[1].Value);
+            return s_inlineIncludeRegex.Matches(fileContents).Select(m => AdjustLinkPath(m.Groups[2].Value));
         }
     }
 }

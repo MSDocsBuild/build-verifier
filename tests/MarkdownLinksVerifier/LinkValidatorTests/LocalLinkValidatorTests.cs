@@ -305,7 +305,39 @@ Hello world.
                     { "/README.md", @"# [.NET 5.0](#tab/net50)
 
 Hello world.
-" },
+"
+                    },
+                }
+            };
+
+            char separator = Path.DirectorySeparatorChar;
+
+            string workspacePath = await workspace.InitializeAsync();
+            using var writer = new StringWriter();
+            int returnCode = await WriteResultsAndGetExitCodeAsync(writer);
+            VerifyNoErrors(writer.ToString().Split(writer.NewLine));
+            Assert.Equal(expected: 0, actual: returnCode);
+        }
+
+        [Fact]
+        public async Task TestHeadingReference_Includes()
+        {
+            using var workspace = new Workspace
+            {
+                Files =
+                {
+                    { "/aspnetcore.md", @"The following breaking changes in ASP.NET Core 3.0 and 3.1 are documented on this page:
+- [Obsolete Antiforgery, CORS, Diagnostics, MVC, and Routing APIs removed](#obsolete-antiforgery-cors-diagnostics-mvc-and-routing-apis-removed)
+
+
+[!INCLUDE[Obsolete Antiforgery, CORS, Diagnostics, MVC, and Routing APIs removed](~/include.md)]
+"
+                    },
+                    { "/include.md", @"### Obsolete Antiforgery, CORS, Diagnostics, MVC, and Routing APIs removed
+
+Obsolete members and compatibility switches in ASP.NET Core 2.2 were removed.
+"
+                    },
                 }
             };
 

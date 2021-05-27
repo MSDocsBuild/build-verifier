@@ -12,6 +12,7 @@ namespace MarkdownLinksVerifier.UnitTests.LinkValidatorTests
         private bool _disposed;
         private readonly string _workspacePath;
 
+
         public Workspace()
         {
             _workspacePath = Path.Join(Directory.GetCurrentDirectory(), WorkspaceTests);
