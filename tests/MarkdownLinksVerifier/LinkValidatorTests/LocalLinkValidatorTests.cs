@@ -319,7 +319,7 @@ Hello world.
             Assert.Equal(expected: 0, actual: returnCode);
         }
 
-        [Fact]
+        [Fact(Skip = "https://github.com/Youssef1313/markdown-links-verifier/issues/93")]
         public async Task TestHeadingReference_Includes()
         {
             using var workspace = new Workspace
