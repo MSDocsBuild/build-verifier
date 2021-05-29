@@ -35,7 +35,7 @@ namespace MarkdownLinksVerifier.UnitTests.LinkValidatorTests
 
         private static void VerifyNoErrors(string[] actual)
         {
-            Assert.True(actual.Length == 2, $"The actual output is expected to have exactly two lines. Found {actual.Length} lines.");
+            Assert.True(actual.Length == 2, $"The actual output is expected to have exactly two lines.  Found {actual.Length} lines:\r\n" + string.Join(Environment.NewLine, actual));
 
             char separator = Path.DirectorySeparatorChar;
             // The first line is always expected to be that.
@@ -274,11 +274,18 @@ Hello world.
                 {
                     { "/README.md", @"
 .NET Framework 4.7.1 includes new features in the following areas:
+
 - [Networking](#net471)
+
+
 #### Common language runtime (CLR)
+
 **Garbage collection performance improvements**
+
 <a name=""net471""/>
+
 #### Networking
+
 **SHA-2 support for Message.HashAlgorithm **
 " },
                 }
@@ -321,5 +328,62 @@ Hello world.
             Verify(writer.ToString().Split(writer.NewLine), expected);
             Assert.Equal(expected: 1, actual: returnCode);
         }
+
+        #region "MSDocs-specific"
+        [Fact]
+        public async Task TestHeadingReference_MSDocsTab()
+        {
+            using var workspace = new Workspace
+            {
+                Files =
+                {
+                    { "/README.md", @"# [.NET 5.0](#tab/net50)
+
+Hello world.
+"
+                    },
+                }
+            };
+
+            char separator = Path.DirectorySeparatorChar;
+
+            string workspacePath = await workspace.InitializeAsync();
+            using var writer = new StringWriter();
+            int returnCode = await WriteResultsAndGetExitCodeAsync(writer);
+            VerifyNoErrors(writer.ToString().Split(writer.NewLine));
+            Assert.Equal(expected: 0, actual: returnCode);
+        }
+
+        [Fact(Skip = "https://github.com/Youssef1313/markdown-links-verifier/issues/93")]
+        public async Task TestHeadingReference_Includes()
+        {
+            using var workspace = new Workspace
+            {
+                Files =
+                {
+                    { "/aspnetcore.md", @"The following breaking changes in ASP.NET Core 3.0 and 3.1 are documented on this page:
+- [Obsolete Antiforgery, CORS, Diagnostics, MVC, and Routing APIs removed](#obsolete-antiforgery-cors-diagnostics-mvc-and-routing-apis-removed)
+
+
+[!INCLUDE[Obsolete Antiforgery, CORS, Diagnostics, MVC, and Routing APIs removed](~/include.md)]
+"
+                    },
+                    { "/include.md", @"### Obsolete Antiforgery, CORS, Diagnostics, MVC, and Routing APIs removed
+
+Obsolete members and compatibility switches in ASP.NET Core 2.2 were removed.
+"
+                    },
+                }
+            };
+
+            char separator = Path.DirectorySeparatorChar;
+
+            string workspacePath = await workspace.InitializeAsync();
+            using var writer = new StringWriter();
+            int returnCode = await WriteResultsAndGetExitCodeAsync(writer);
+            VerifyNoErrors(writer.ToString().Split(writer.NewLine));
+            Assert.Equal(expected: 0, actual: returnCode);
+        }
+        #endregion
     }
 }
