@@ -277,7 +277,6 @@ Hello world.
 
 - [Networking](#net471)
 
-
 #### Common language runtime (CLR)
 
 **Garbage collection performance improvements**
