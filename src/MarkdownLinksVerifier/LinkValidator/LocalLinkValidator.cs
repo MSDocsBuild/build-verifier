@@ -38,7 +38,6 @@ namespace MarkdownLinksVerifier.LinkValidator
             }
 
             link = link.Replace("%20", " ", StringComparison.Ordinal);
-            string relativeTo = _baseDirectory;
             link = AdjustLinkPath(link, _baseDirectory);
 
             string? headingIdWithoutHash = null;
