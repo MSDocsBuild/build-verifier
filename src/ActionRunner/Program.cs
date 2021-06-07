@@ -13,7 +13,7 @@ returnCode += await MarkdownFilesAnalyzer.WriteResultsAsync(Console.Out, configu
 
 // on: pull_request
 // env:
-//   PR_NUMBER: ${{ github.event.pull_request.number }}
+//   GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
 if (!int.TryParse(Environment.GetEnvironmentVariable("GITHUB_PR_NUMBER"), out int pullRequestNumber))
 {
     throw new InvalidOperationException($"The value of GITHUB_PR_NUMBER environment variable is not valid.");
@@ -23,14 +23,14 @@ List<PullRequestFile> files = (await GitHubPullRequest.GetPullRequestFilesAsync(
 
 foreach (PullRequestFile file in files)
 {
-    if (file.IsRenamed())
+    if (file.IsRenamed() && file.PreviousFileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
     {
         if (!await RedirectionsVerifier.WriteResultsAsync(Console.Out, file.PreviousFileName))
         {
             returnCode++;
         }
     }
-    else if (file.IsRemoved())
+    else if (file.IsRemoved() && file.FileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
     {
         if (!await RedirectionsVerifier.WriteResultsAsync(Console.Out, file.FileName))
         {
